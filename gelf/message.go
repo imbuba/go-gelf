@@ -11,7 +11,7 @@ import (
 // before sending.
 type Message struct {
 	Version  string                 `json:"version"`
-	Host     string                 `json:"host"`
+	Host     string                 `json:"host,omitempty"`
 	Short    string                 `json:"short_message"`
 	Full     string                 `json:"full_message,omitempty"`
 	TimeUnix float64                `json:"timestamp"`
