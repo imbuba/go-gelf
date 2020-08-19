@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -14,7 +15,7 @@ type Message struct {
 	Host     string                 `json:"host,omitempty"`
 	Short    string                 `json:"short_message"`
 	Full     string                 `json:"full_message,omitempty"`
-	TimeUnix float64                `json:"timestamp"`
+	TimeUnix int64                  `json:"timestamp"`
 	Level    int32                  `json:"level,omitempty"`
 	Facility string                 `json:"facility,omitempty"`
 	Extra    map[string]interface{} `json:"-"`
@@ -23,14 +24,14 @@ type Message struct {
 
 // Syslog severity levels
 const (
-	LOG_EMERG   = 0
-	LOG_ALERT   = 1
-	LOG_CRIT    = 2
-	LOG_ERR     = 3
-	LOG_WARNING = 4
-	LOG_NOTICE  = 5
-	LOG_INFO    = 6
-	LOG_DEBUG   = 7
+	LOG_EMERG = iota
+	LOG_ALERT
+	LOG_CRIT
+	LOG_ERR
+	LOG_WARNING
+	LOG_NOTICE
+	LOG_INFO
+	LOG_DEBUG
 )
 
 func (m *Message) MarshalJSONBuf(buf *bytes.Buffer) error {
@@ -97,7 +98,7 @@ func (m *Message) UnmarshalJSON(data []byte) error {
 		case "full_message":
 			m.Full, ok = v.(string)
 		case "timestamp":
-			m.TimeUnix, ok = v.(float64)
+			m.TimeUnix, ok = v.(int64)
 		case "level":
 			var level float64
 			level, ok = v.(float64)
@@ -141,13 +142,33 @@ func constructMessage(p []byte, hostname string, facility string, file string, l
 		Host:     hostname,
 		Short:    string(short),
 		Full:     string(full),
-		TimeUnix: float64(time.Now().UnixNano()) / float64(time.Second),
+		TimeUnix: time.Now().Unix(),
 		Level:    6, // info
 		Facility: facility,
 		Extra: map[string]interface{}{
 			"_file": file,
 			"_line": line,
 		},
+	}
+
+	return m
+}
+
+func constructMessageFromString(message string, level int32, extra map[string]interface{}) (m *Message) {
+	// remove trailing and leading whitespace
+	message = strings.TrimSpace(message)
+
+	m = &Message{
+		Version:  "1.1",
+		Short:    message,
+		TimeUnix: time.Now().Unix(),
+		Level:    level,
+		Extra:    extra,
+	}
+
+	if i := strings.Index(message, "\n"); i > 0 {
+		m.Short = message[:i]
+		m.Full = message
 	}
 
 	return m

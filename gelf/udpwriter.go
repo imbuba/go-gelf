@@ -229,3 +229,13 @@ func (w *UDPWriter) Write(p []byte) (n int, err error) {
 
 	return len(p), nil
 }
+
+// WriteString encodes the given string in a GELF message and sends it to
+// the server specified in New().
+func (w *UDPWriter) WriteString(message string, level int32, extra map[string]interface{}) (err error) {
+	m := constructMessageFromString(message, level, extra)
+	if err = w.WriteMessage(m); err != nil {
+		return err
+	}
+	return nil
+}
